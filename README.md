@@ -29,3 +29,8 @@ go run explore.go
 ```
 
 This will create a `stats.json` file
+
+
+## License
+
+[![License: MIT](https://img.shields.io/github/license/vlatan/postmark-reports?label=License)](/LICENSE "License: MIT")
