@@ -12,33 +12,33 @@ import (
 	"github.com/vlatan/postmark-reports/common"
 )
 
-type ReportRecords struct {
-	CreatedAt           time.Time       `json:"created_at"`
-	DateRangeBegin      time.Time       `json:"date_range_begin"`
-	DateRangeEnd        time.Time       `json:"date_range_end"`
-	DkimAlignmentMode   string          `json:"dkim_alignment_mode"`
-	Domain              string          `json:"domain"`
-	DomainPolicy        string          `json:"domain_policy"`
-	Email               string          `json:"email"`
-	ExternalID          string          `json:"external_id"`
-	ExtraContactInfo    string          `json:"extra_contact_info"`
-	FilteringPercentage int             `json:"filtering_percentage"`
-	ID                  int             `json:"id"`
-	OrganizationName    string          `json:"organization_name"`
-	RawSize             int             `json:"raw_size"`
-	RecordID            int             `json:"record_id"`
-	Records             []common.Record `json:"records"`
-	SourceURI           string          `json:"source_uri"`
-	SpfAlignmentMode    string          `json:"spf_alignment_mode"`
-	SubdomainPolicy     string          `json:"subdomain_policy"`
+type PostmarkRecords struct {
+	CreatedAt           time.Time               `json:"created_at"`
+	DateRangeBegin      time.Time               `json:"date_range_begin"`
+	DateRangeEnd        time.Time               `json:"date_range_end"`
+	DkimAlignmentMode   string                  `json:"dkim_alignment_mode"`
+	Domain              string                  `json:"domain"`
+	DomainPolicy        string                  `json:"domain_policy"`
+	Email               string                  `json:"email"`
+	ExternalID          string                  `json:"external_id"`
+	ExtraContactInfo    string                  `json:"extra_contact_info"`
+	FilteringPercentage int                     `json:"filtering_percentage"`
+	ID                  int                     `json:"id"`
+	OrganizationName    string                  `json:"organization_name"`
+	RawSize             int                     `json:"raw_size"`
+	RecordID            int                     `json:"record_id"`
+	Records             []common.PostmarkRecord `json:"records"`
+	SourceURI           string                  `json:"source_uri"`
+	SpfAlignmentMode    string                  `json:"spf_alignment_mode"`
+	SubdomainPolicy     string                  `json:"subdomain_policy"`
 }
 
 type Result struct {
 	mutex sync.Mutex
-	value []common.Record
+	value []common.PostmarkRecord
 }
 
-func (r *Result) Extend(records []common.Record) {
+func (r *Result) Extend(records []common.PostmarkRecord) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	r.value = append(r.value, records...)
@@ -58,7 +58,7 @@ func getReportDetails(client *http.Client, id int) []byte {
 }
 
 func compileReportsDetails(reports []byte) {
-	var data []common.ReportEntry
+	var data []common.PostmarkReportInfo
 	err := json.Unmarshal(reports, &data)
 	common.Crash(err)
 
@@ -70,7 +70,7 @@ func compileReportsDetails(reports []byte) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			var recordsData ReportRecords
+			var recordsData PostmarkRecords
 			records := getReportDetails(&client, entry.Id)
 			err = json.Unmarshal(records, &recordsData)
 			common.Crash(err)

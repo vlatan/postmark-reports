@@ -14,7 +14,7 @@ func main() {
 	details, err := os.ReadFile("records.json")
 	common.Crash(err)
 
-	var data []common.Record
+	var data []common.PostmarkRecord
 	err = json.Unmarshal(details, &data)
 	common.Crash(err)
 

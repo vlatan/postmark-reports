@@ -10,12 +10,12 @@ import (
 	"github.com/vlatan/postmark-reports/common"
 )
 
-type ReportEntries struct {
-	Entries []common.ReportEntry `json:"entries"`
-	Meta    Meta                 `json:"meta"`
+type PostmarkReportsResponse struct {
+	Entries []common.PostmarkReportInfo `json:"entries"`
+	Meta    PostmarkMeta                `json:"meta"`
 }
 
-type Meta struct {
+type PostmarkMeta struct {
 	Next    any `json:"next"`
 	NextURL any `json:"next_url"`
 	Total   int `json:"total"`
@@ -31,11 +31,11 @@ func saveReports(fromDate, toDate string) {
 	client := http.Client{}
 	url := fmt.Sprintf("%s/records/my/reports?from_date=%s&to_date=%s", common.DOMAIN, fromDate, toDate)
 	reports := common.GetData(&client, url)
-	var data ReportEntries
+	var data PostmarkReportsResponse
 	err := json.Unmarshal(reports, &data)
 	common.Crash(err)
 
-	result := []common.ReportEntry{}
+	result := []common.PostmarkReportInfo{}
 	result = append(result, data.Entries...)
 
 	for data.Meta.Next != nil {

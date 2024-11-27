@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type ReportEntry struct {
+type PostmarkReportInfo struct {
 	Id               int       `json:"id"`
 	Domain           string    `json:"domain"`
 	ExternalId       string    `json:"external_id"`
@@ -18,7 +18,7 @@ type ReportEntry struct {
 	CreatedAt        time.Time `json:"created_at"`
 }
 
-type Record struct {
+type PostmarkRecord struct {
 	Count                        int       `json:"count"`
 	CreatedAt                    time.Time `json:"created_at"`
 	DkimDomain                   any       `json:"dkim_domain"`
