@@ -2,12 +2,24 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
-	"strings"
 
 	"github.com/vlatan/postmark-reports/common"
 )
+
+type Count struct {
+	Total    int `json:"total_messages_sent"`
+	SPFPass  int `json:"spf_pass"`
+	DKIMPass int `json:"dkim_pass"`
+}
+type Domains map[string]Count
+
+type Stats struct {
+	Total    int     `json:"total_messages_sent"`
+	SPFPass  int     `json:"spf_pass"`
+	DKIMPass int     `json:"dkim_pass"`
+	Domains  Domains `json:"domains"`
+}
 
 func main() {
 
@@ -18,55 +30,41 @@ func main() {
 	err = json.Unmarshal(details, &data)
 	common.Crash(err)
 
-	total, failed, passed := 0, 0, 0
-	amazonTotal, amazonPassed, amazonFailed := 0, 0, 0
-	googleTotal, googlePassed, googleFailed := 0, 0, 0
+	total, totalSPFPass, totalDKIMPass := 0, 0, 0
+	domains := make(Domains)
 
 	for _, record := range data {
-
 		total += record.Count
-		SPF := record.PolicyEvaluatedSpf == "pass"
-		DKIM := record.PolicyEvaluatedDkim == "pass"
-		amazon := strings.HasSuffix(record.HostName, "amazonses.com.")
-		google := strings.HasSuffix(record.HostName, "google.com.")
-
-		switch SPF || DKIM {
-		case true:
-			passed += record.Count
-			if amazon {
-				amazonTotal += record.Count
-				amazonPassed += record.Count
-			} else if google {
-				googleTotal += record.Count
-				googlePassed += record.Count
-			}
-		case false:
-			failed += record.Count
-			if amazon {
-				amazonTotal += record.Count
-				amazonFailed += record.Count
-			} else if google {
-				googleTotal += record.Count
-				googleFailed += record.Count
-			}
+		domain := record.TopPrivateDomainName
+		if domain == "" || domain == "." {
+			domain = "unresolved"
 		}
+
+		domainCount := domains[domain]
+		domainCount.Total += record.Count
+
+		if record.PolicyEvaluatedSpf == "pass" {
+			totalSPFPass += record.Count
+			domainCount.SPFPass += record.Count
+		}
+
+		if record.PolicyEvaluatedDkim == "pass" {
+			totalDKIMPass += record.Count
+			domainCount.DKIMPass += record.Count
+		}
+
+		domains[domain] = domainCount
 	}
 
-	fmt.Println(strings.Repeat("-", 40))
-	fmt.Println("Total Messages Sent:", total)
-	fmt.Printf("SPF or DKIM aligned: %d (%.0f%%)\n", passed, Percent(passed, total))
-	fmt.Printf("SPF and DKIM not aligned: %d (%.0f%%)\n", failed, Percent(failed, total))
-	fmt.Println(strings.Repeat("-", 40))
-	fmt.Println("Amazon Total Messages Sent:", amazonTotal)
-	fmt.Printf("SPF or DKIM aligned: %d (%.0f%%)\n", amazonPassed, Percent(amazonPassed, amazonTotal))
-	fmt.Printf("SPF and DKIM not aligned: %d (%.0f%%)\n", amazonFailed, Percent(amazonFailed, amazonTotal))
-	fmt.Println(strings.Repeat("-", 40))
-	fmt.Println("Google Total Messages Sent:", googleTotal)
-	fmt.Printf("SPF or DKIM aligned: %d (%.0f%%)\n", googlePassed, Percent(googlePassed, googleTotal))
-	fmt.Printf("SPF and DKIM not aligned:: %d (%.0f%%)\n", googleFailed, Percent(googleFailed, googleTotal))
-	fmt.Println(strings.Repeat("-", 40))
-}
+	stats := Stats{
+		Total:    total,
+		SPFPass:  totalSPFPass,
+		DKIMPass: totalDKIMPass,
+		Domains:  domains,
+	}
 
-func Percent(fraction, total int) float32 {
-	return float32(fraction) / float32(total) * 100
+	file, err := json.MarshalIndent(stats, "", "\t")
+	common.Crash(err)
+	err = os.WriteFile("stats.json", file, 0644)
+	common.Crash(err)
 }
