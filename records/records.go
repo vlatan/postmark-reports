@@ -38,17 +38,17 @@ type Result struct {
 	value []common.PostmarkRecord
 }
 
-func (r *Result) Extend(records []common.PostmarkRecord) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
-	r.value = append(r.value, records...)
-}
-
 func main() {
 	godotenv.Load()
 	reports, err := os.ReadFile("reports.json")
 	common.Crash(err)
 	compileReportsDetails(reports)
+}
+
+func (r *Result) Extend(records []common.PostmarkRecord) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	r.value = append(r.value, records...)
 }
 
 // https://dmarc.postmarkapp.com/api/#get-a-report-by-id
