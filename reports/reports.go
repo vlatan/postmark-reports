@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
@@ -23,7 +24,11 @@ type PostmarkMeta struct {
 
 func main() {
 	godotenv.Load()
-	saveReports("2024-11-18", "2024-11-25")
+	var args []string = os.Args
+	if len(args) != 3 {
+		log.Fatal("Please provide date range i.e. 2024-11-18 2024-11-25")
+	}
+	saveReports(args[1], args[2])
 }
 
 // https://dmarc.postmarkapp.com/api/#list-dmarc-reports
