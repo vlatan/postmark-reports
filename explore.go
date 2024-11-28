@@ -8,17 +8,17 @@ import (
 )
 
 type Count struct {
-	Total    int `json:"total_messages_sent"`
-	SPFPass  int `json:"spf_pass"`
-	DKIMPass int `json:"dkim_pass"`
+	Total          int `json:"messages_sent"`
+	SPForDKIMPass  int `json:"spf_or_dkim_pass"`
+	SPFandDKIMFail int `json:"spf_and_dkim_fail"`
+	SPFPass        int `json:"spf_pass"`
+	DKIMPass       int `json:"dkim_pass"`
 }
 type Domains map[string]Count
 
 type Stats struct {
-	Total    int     `json:"total_messages_sent"`
-	SPFPass  int     `json:"spf_pass"`
-	DKIMPass int     `json:"dkim_pass"`
-	Domains  Domains `json:"domains"`
+	Total   Count   `json:"total"`
+	Domains Domains `json:"domains"`
 }
 
 func main() {
@@ -30,7 +30,8 @@ func main() {
 	err = json.Unmarshal(details, &data)
 	common.Crash(err)
 
-	total, totalSPFPass, totalDKIMPass := 0, 0, 0
+	total, totalSPFPass, totalDKIMPass, totalSPForDKIMPass := 0, 0, 0, 0
+	totalSPFandDKIMFail := 0
 	domains := make(Domains)
 
 	for _, record := range data {
@@ -43,24 +44,41 @@ func main() {
 		domainCount := domains[domain]
 		domainCount.Total += record.Count
 
+		countPass := 0
 		if record.PolicyEvaluatedSpf == "pass" {
 			totalSPFPass += record.Count
 			domainCount.SPFPass += record.Count
+			countPass++
 		}
 
 		if record.PolicyEvaluatedDkim == "pass" {
 			totalDKIMPass += record.Count
 			domainCount.DKIMPass += record.Count
+			countPass++
+		}
+
+		switch countPass {
+		case 0:
+			totalSPFandDKIMFail += record.Count
+			domainCount.SPFandDKIMFail += record.Count
+		case 1, 2:
+			totalSPForDKIMPass += record.Count
+			domainCount.SPForDKIMPass += record.Count
+
 		}
 
 		domains[domain] = domainCount
 	}
 
 	stats := Stats{
-		Total:    total,
-		SPFPass:  totalSPFPass,
-		DKIMPass: totalDKIMPass,
-		Domains:  domains,
+		Total: Count{
+			Total:          total,
+			SPForDKIMPass:  totalSPForDKIMPass,
+			SPFandDKIMFail: totalSPFandDKIMFail,
+			SPFPass:        totalSPFPass,
+			DKIMPass:       totalDKIMPass,
+		},
+		Domains: domains,
 	}
 
 	file, err := json.MarshalIndent(stats, "", "\t")
