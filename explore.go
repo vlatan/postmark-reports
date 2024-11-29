@@ -17,8 +17,8 @@ type Count struct {
 type Domains map[string]Count
 
 type Stats struct {
-	Total   Count   `json:"total"`
-	Domains Domains `json:"domains"`
+	Total                 Count   `json:"total"`
+	TopPrivateDomainNames Domains `json:"top_private_domain_names"`
 }
 
 func main() {
@@ -78,7 +78,7 @@ func main() {
 			SPFPass:        totalSPFPass,
 			DKIMPass:       totalDKIMPass,
 		},
-		Domains: domains,
+		TopPrivateDomainNames: domains,
 	}
 
 	file, err := json.MarshalIndent(stats, "", "\t")
