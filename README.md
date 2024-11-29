@@ -1,6 +1,6 @@
 # Analyze Postmark DMARC Raw Reports
 
-Get raw DMARC reports for your domain from Postmark's API and analyze the records.
+Get raw DMARC reports for your domain from [Postmark's API](https://dmarc.postmarkapp.com/api/) and analyze the records.
 
 
 ## Prerequisites
