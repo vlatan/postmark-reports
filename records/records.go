@@ -96,7 +96,7 @@ func compileReportsDetails(reports []byte) {
 		go worker(jobs, &result, &wg)
 	}
 
-	// Queue up the jobs
+	// Queue up the jobs into the 'jobs' buffered channel
 	client := http.Client{}
 	for _, entry := range data {
 		wg.Add(1)
