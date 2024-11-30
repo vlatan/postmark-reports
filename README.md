@@ -5,7 +5,7 @@ Get raw DMARC reports for your domain from [Postmark's API](https://dmarc.postma
 
 ## Prerequisites
 
-Assuming you have Postmark as `mailto` in your `_dmarc` DNS record you'll of course need an API token in order to interact with ther API.
+Assuming you have Postmark as `mailto` in your `_dmarc` DNS record you'll of course need an API token in order to interact with their API. Also don't forget to designate the number of workers, meaning the number of concurrent requests to the API. You can do that by exporting `TOKEN` and `WORKERS` environment variables or designate them in an `.env` file.
 
 ## Usage
 
