@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -38,6 +39,11 @@ type Result struct {
 	value []common.PostmarkRecord
 }
 
+type Job struct {
+	client *http.Client
+	report common.PostmarkReportInfo
+}
+
 func main() {
 	godotenv.Load()
 	reports, err := os.ReadFile("reports.json")
@@ -57,28 +63,48 @@ func getReportDetails(client *http.Client, id int) []byte {
 	return common.GetData(client, url)
 }
 
+// Process jobs from the 'jobs' channel and update the result
+func worker(jobs chan Job, result *Result, wg *sync.WaitGroup) {
+	var recordsData PostmarkRecords
+	for job := range jobs {
+		records := getReportDetails(job.client, job.report.Id)
+		err := json.Unmarshal(records, &recordsData)
+		common.Crash(err)
+		result.Extend(recordsData.Records)
+		wg.Done()
+	}
+}
+
 func compileReportsDetails(reports []byte) {
-	var data []common.PostmarkReportInfo
-	err := json.Unmarshal(reports, &data)
+	numWorkers, err := strconv.Atoi(os.Getenv("WORKERS"))
 	common.Crash(err)
 
-	client := http.Client{}
+	var data []common.PostmarkReportInfo
+	err = json.Unmarshal(reports, &data)
+	common.Crash(err)
+
 	var result Result
 	var wg sync.WaitGroup
+	jobs := make(chan Job, len(data))
 
-	for _, entry := range data {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			var recordsData PostmarkRecords
-			records := getReportDetails(&client, entry.Id)
-			err = json.Unmarshal(records, &recordsData)
-			common.Crash(err)
-			result.Extend(recordsData.Records)
-		}()
+	// Start the workers in a separate goroutines.
+	// Each will pop a job from the 'jobs' channel and process it concurrently.
+	for w := 0; w < numWorkers; w++ {
+		go worker(jobs, &result, &wg)
 	}
 
+	// Queue up the jobs
+	client := http.Client{}
+	for _, entry := range data {
+		wg.Add(1)
+		jobs <- Job{&client, entry}
+	}
+
+	// Wait for jobs to finish
 	wg.Wait()
+	close(jobs) // we don't even need to close the channel
+
+	// Create one file
 	file, err := json.MarshalIndent(result.value, "", "\t")
 	common.Crash(err)
 	err = os.WriteFile("records.json", file, 0644)
