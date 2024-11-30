@@ -75,6 +75,8 @@ func worker(jobs chan Job, result *Result, wg *sync.WaitGroup) {
 	}
 }
 
+// Run workers, process the jobs (get records from reports)
+// and combine the results into one file.
 func compileReportsDetails(reports []byte) {
 	numWorkers, err := strconv.Atoi(os.Getenv("WORKERS"))
 	common.Crash(err)
@@ -88,7 +90,8 @@ func compileReportsDetails(reports []byte) {
 	jobs := make(chan Job, len(data))
 
 	// Start the workers in a separate goroutines.
-	// Each will pop a job from the 'jobs' channel and process it concurrently.
+	// Each will pop a job from the 'jobs' channel
+	// and process it concurrently.
 	for w := 0; w < numWorkers; w++ {
 		go worker(jobs, &result, &wg)
 	}
@@ -102,7 +105,12 @@ func compileReportsDetails(reports []byte) {
 
 	// Wait for jobs to finish
 	wg.Wait()
-	close(jobs) // we don't even need to close the channel
+
+	// We don't even need to close the channel
+	// because when wg.Wait() is done it means
+	// all the records are already in the Result
+	// and we can proceed with the file creation.
+	close(jobs)
 
 	// Create one file
 	file, err := json.MarshalIndent(result.value, "", "\t")
